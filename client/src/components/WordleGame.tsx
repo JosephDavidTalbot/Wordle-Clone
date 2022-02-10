@@ -1,4 +1,21 @@
+import { useState } from "react";
+import internal from "stream";
 import WordleInterface from "./WordleInterface"
+
+type GameState = {
+    history: string[];
+    guessNumber: number;
+    secretWord: string;
+    hasWon: boolean;
+}
+
+const [gameState, updateGameState] = useState<GameState>({
+    hasWon: false
+} as GameState);
+
+const checkGuess = (guess: string) => {
+    return false;
+}
 
 /*
 export class WordleGame extends React.Component {
