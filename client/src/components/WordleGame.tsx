@@ -1,8 +1,6 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css';
 import WordleInterface from "./WordleInterface"
 
+/*
 export class WordleGame extends React.Component {
     constructor(props: WordleInterface) {
         super(props);
@@ -51,4 +49,10 @@ export class WordleGame extends React.Component {
             hasWon: victory,
         });
     }
+}
+*/
+export const WordleGame = () => {
+    return <div>
+        Wordle!
+    </div>
 }
