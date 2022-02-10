@@ -1,5 +1,4 @@
 import { useState } from "react";
-import internal from "stream";
 import WordleInterface from "./WordleInterface"
 
 type GameState = {
