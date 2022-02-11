@@ -27,48 +27,39 @@ type GameState = {
 }
 
 const CheckGuess = (guess: string, gameState: GameState, updateGameState: any) => {
-
     const { guessesAllowed, hasWon, history, secretWord } = gameState;
     if(gameState.history.length >= gameState.guessesAllowed || gameState.hasWon) {
         return;
     }
     const target = gameState.secretWord;
-    var accuracy: LetterGuess[];
-    accuracy = [];
+    let accuracy: LetterGuess[] = [];
     //Shorthand will be used for accuracy. Whitespace indicates absence of the corresponding character. X indicates presence but in a different location. O indicates presence in that location.
-    for(var i=0; i<guess.length; i++) {
-        var tempAcc: LetterGuessState;
-        switch(target.indexOf(guess[i])) { //For each character in guess, check if it's in the secret word.
+
+    accuracy = guess.split('').map(function(char: string, i: number) {
+        let tempAcc: LetterGuessState;
+        switch(target.indexOf(char)) { //For each character in guess, check if it's in the secret word.
             case -1: //If not, return whitespace.
-                //accuracy.push(' ');
                 tempAcc = LetterGuessState.Incorrect;
                 break;
             case i: //If it's in the same place it was in the guess, return O.
-                //accuracy.push('O');
                 tempAcc = LetterGuessState.Correct;
                 break;
             default://Otherwise, it has to be present but misplaced. Return X.
-                //accuracy.push('X');
                 tempAcc = LetterGuessState.Misplaced;
                 break;
         }
-        accuracy.push({letter: guess[i], position: i, state: tempAcc});
-    }
-    /*var victory = false;
-    if(accuracy === ['O','O','O','O','O']){ //Checks if the player has won, and if so, sets the victory flag to true.
-        victory = true;
-    }*/
-    var victory = true;
+        let letterGuess: LetterGuess = {letter: char, position: i, state: tempAcc};
+        return letterGuess;
+    })
+    let victory = true;
     accuracy.forEach(char => {if(char.state != LetterGuessState.Correct){ victory = false; }})
     updateGameState({
+        ...gameState,
         history: history.concat({
             guess: guess,
             accuracy: accuracy,
         }),
-        guessNumber: history.length,
-        //guessesAllowed and secretWord are both constants. What's the ideal way to deal with these here? This approach doesn't throw any errors, at least, but it feels wrong.
-        guessesAllowed: gameState.guessesAllowed,
-        secretWord: gameState.secretWord,
+        guessNumber: (history.length+2),
         hasWon: victory,
     });
 }
@@ -77,11 +68,12 @@ export const WordleGame = () => {
     const [guess, setGuess] = useState("")
     const [gameState, updateGameState] = useState<GameState>({
         history: [],
-        guessNumber: 0,
+        guessNumber: 1,
         guessesAllowed: 6,
         secretWord: 'angry',
         hasWon: false
     } as GameState);
+    const { guessesAllowed, guessNumber, hasWon, history, secretWord } = gameState;
 
     const handleGuess = (event: any) => {
         event.preventDefault();
@@ -90,7 +82,7 @@ export const WordleGame = () => {
     }
 
     const renderHistory = (history: HistoryEntry[]) => {
-        var out: string[];
+        let out: string[];
         out = []
         history.forEach(entry => {
             out.push("Guess: "+entry.guess+". Accuracy: "+renderAccuracy(entry.accuracy));
@@ -105,7 +97,7 @@ export const WordleGame = () => {
     }
 
     const renderAccuracy = (accuracy: LetterGuess[]) => {
-        var out = "";
+        let out = "";
         accuracy.forEach(char => {
             out = out.concat('The letter '+char.letter+' is ');
             switch(char.state) {
@@ -126,20 +118,22 @@ export const WordleGame = () => {
     const renderVictory = (hasWon: boolean) => {
         if(hasWon) {
             return "You win!"
+        } else if (gameState.history.length >= gameState.guessesAllowed) {
+            return "You lose!"
         }
     }
 
     return (
         <div>
-            Wordle!
+            <h2>Wordle!</h2>
 
-            <form onSubmit={handleGuess}>
-                <label>
-                    Guess:
-                    <input type="text" value={guess} onChange={(e) => setGuess(e.target.value)}/>
-                </label>
-                <input type="submit" value="Submit" />
-            </form>
+            <label>
+                Guess:
+                <input type="text" value={guess} onChange={(e) => setGuess(e.target.value)}/>
+            </label>
+            <input type="submit" value="Submit" onClick={handleGuess}/>
+            Guess #{guessNumber}<br/>
+            Guesses Left: {guessesAllowed-(guessNumber-1)}
 
             <div id="history">{renderHistory(gameState.history)}</div>
             <br/>
