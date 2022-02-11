@@ -1,9 +1,21 @@
 import { useState } from "react";
 import WordleInterface from "./WordleInterface"
 
+enum LetterGuessState {
+    Incorrect,
+    Misplaced,
+    Correct
+}
+
+type LetterGuess = {
+    letter: string;
+    position: number;
+    state: LetterGuessState;
+}
+
 type HistoryEntry = {
     guess: string;
-    accuracy: string[];
+    accuracy: LetterGuess[];
 }
 
 type GameState = {
@@ -14,112 +26,124 @@ type GameState = {
     hasWon: boolean;
 }
 
-const CheckGuess = (guess: string) => {
-    const [gameState, updateGameState] = useState<GameState>({
-        guessesAllowed: 6,
-        hasWon: false
-    } as GameState);
+const CheckGuess = (guess: string, gameState: GameState, updateGameState: any) => {
 
+    const { guessesAllowed, hasWon, history, secretWord } = gameState;
     if(gameState.history.length >= gameState.guessesAllowed || gameState.hasWon) {
         return;
     }
-    const history = gameState.history.slice(0, gameState.guessNumber-1);
     const target = gameState.secretWord;
-    var accuracy = [];
+    var accuracy: LetterGuess[];
+    accuracy = [];
     //Shorthand will be used for accuracy. Whitespace indicates absence of the corresponding character. X indicates presence but in a different location. O indicates presence in that location.
     for(var i=0; i<guess.length; i++) {
+        var tempAcc: LetterGuessState;
         switch(target.indexOf(guess[i])) { //For each character in guess, check if it's in the secret word.
             case -1: //If not, return whitespace.
-                accuracy.push(' ');
+                //accuracy.push(' ');
+                tempAcc = LetterGuessState.Incorrect;
                 break;
             case i: //If it's in the same place it was in the guess, return O.
-                accuracy.push('O');
+                //accuracy.push('O');
+                tempAcc = LetterGuessState.Correct;
                 break;
             default://Otherwise, it has to be present but misplaced. Return X.
-                accuracy.push('X');
+                //accuracy.push('X');
+                tempAcc = LetterGuessState.Misplaced;
                 break;
         }
+        accuracy.push({letter: guess[i], position: i, state: tempAcc});
     }
-    var victory = false;
+    /*var victory = false;
     if(accuracy === ['O','O','O','O','O']){ //Checks if the player has won, and if so, sets the victory flag to true.
         victory = true;
-    }
+    }*/
+    var victory = true;
+    accuracy.forEach(char => {if(char.state != LetterGuessState.Correct){ victory = false; }})
     updateGameState({
         history: history.concat({
             guess: guess,
             accuracy: accuracy,
         }),
         guessNumber: history.length,
-        //guessesAllowed and secretWord are both constants. What's the ideal way to deal with these here?
-        //guessesAllowed: this.props.guessesAllowed,
-        //secretWord: this.props.secretWord,
+        //guessesAllowed and secretWord are both constants. What's the ideal way to deal with these here? This approach doesn't throw any errors, at least, but it feels wrong.
         guessesAllowed: gameState.guessesAllowed,
         secretWord: gameState.secretWord,
         hasWon: victory,
     });
-
-    return false;
 }
 
-/*
-export class WordleGame extends React.Component {
-    constructor(props: WordleInterface) {
-        super(props);
-        gameState = {
-            history: [],
-            guessNumber: 1,
-            guessesAllowed: props.guessesAllowed,
-            secretWord: props.secretWord,
-            hasWon: false,
-        };
+export const WordleGame = () => {
+    const [guess, setGuess] = useState("")
+    const [gameState, updateGameState] = useState<GameState>({
+        history: [],
+        guessNumber: 0,
+        guessesAllowed: 6,
+        secretWord: 'angry',
+        hasWon: false
+    } as GameState);
+
+    const handleGuess = (event: any) => {
+        event.preventDefault();
+        CheckGuess(guess, gameState, updateGameState);
+        setGuess('');
     }
 
-    checkGuess(guess: string) {
-        if(gameState.history.length >= gameState.guessesAllowed || gameState.hasWon) {
-            return;
-        }
-        const history = gameState.history.slice(0, gameState.guessNumber-1);
-        const target = gameState.secretWord;
-        var accuracy = [];
-        //Shorthand will be used for accuracy. Whitespace indicates absence of the corresponding character. X indicates presence but in a different location. O indicates presence in that location.
-        for(var i=0; i<guess.length; i++) {
-            switch(target.indexOf(guess[i])) { //For each character in guess, check if it's in the secret word.
-                case -1: //If not, return whitespace.
-                    accuracy.push(' ');
+    const renderHistory = (history: HistoryEntry[]) => {
+        var out: string[];
+        out = []
+        history.forEach(entry => {
+            out.push("Guess: "+entry.guess+". Accuracy: "+renderAccuracy(entry.accuracy));
+        });
+        return (
+            <ol>
+                {out.map((entry) => (
+                    <li>{entry}</li>
+                ))}
+            </ol>
+        );
+    }
+
+    const renderAccuracy = (accuracy: LetterGuess[]) => {
+        var out = "";
+        accuracy.forEach(char => {
+            out = out.concat('The letter '+char.letter+' is ');
+            switch(char.state) {
+                case LetterGuessState.Incorrect: //If not, return whitespace.
+                    out = out.concat('not present. ');
                     break;
-                case i: //If it's in the same place it was in the guess, return O.
-                    accuracy.push('O');
+                case LetterGuessState.Correct: //If it's in the same place it was in the guess, return O.
+                    out = out.concat('present, and in the correct spot. ')
                     break;
                 default://Otherwise, it has to be present but misplaced. Return X.
-                    accuracy.push('X');
+                    out = out.concat('present, but in the wrong spot. ')
                     break;
             }
-        }
-        var victory = false;
-        if(accuracy === ['O','O','O','O','O']){ //Checks if the player has won, and if so, sets the victory flag to true.
-            victory = true;
-        }
-        this.setState({
-            history: history.concat([{
-                guess: guess,
-                accuracy: accuracy,
-            }]),
-            guessNumber: history.length,
-            guessesAllowed: this.props.guessesAllowed,
-            secretWord: this.props.secretWord,
-            hasWon: victory,
-        });
+        })
+        return out;
     }
-}
-*/
-export const WordleGame = () => {
+
+    const renderVictory = (hasWon: boolean) => {
+        if(hasWon) {
+            return "You win!"
+        }
+    }
+
     return (
         <div>
             Wordle!
 
+            <form onSubmit={handleGuess}>
+                <label>
+                    Guess:
+                    <input type="text" value={guess} onChange={(e) => setGuess(e.target.value)}/>
+                </label>
+                <input type="submit" value="Submit" />
+            </form>
 
-
-            <div id="msg"></div>
+            <div id="history">{renderHistory(gameState.history)}</div>
+            <br/>
+            <div id="victory">{renderVictory(gameState.hasWon)}</div>
         </div>
     );
 }
