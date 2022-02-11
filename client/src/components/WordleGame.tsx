@@ -36,20 +36,15 @@ const CheckGuess = (guess: string, gameState: GameState, updateGameState: any) =
     //Shorthand will be used for accuracy. Whitespace indicates absence of the corresponding character. X indicates presence but in a different location. O indicates presence in that location.
 
     accuracy = guess.split('').map(function(char: string, i: number) {
-        let tempAcc: LetterGuessState;
-        switch(target.indexOf(char)) { //For each character in guess, check if it's in the secret word.
-            case -1: //If not, return whitespace.
-                tempAcc = LetterGuessState.Incorrect;
-                break;
-            case i: //If it's in the same place it was in the guess, return O.
-                tempAcc = LetterGuessState.Correct;
-                break;
-            default://Otherwise, it has to be present but misplaced. Return X.
-                tempAcc = LetterGuessState.Misplaced;
-                break;
+        const idx = target.indexOf(char);
+        return {
+            letter: char, position: i,
+            state: idx < 0
+                ? LetterGuessState.Incorrect
+                : idx === i
+                    ? LetterGuessState.Correct
+                    : LetterGuessState.Misplaced
         }
-        let letterGuess: LetterGuess = {letter: char, position: i, state: tempAcc};
-        return letterGuess;
     })
     let victory = true;
     accuracy.forEach(char => {if(char.state != LetterGuessState.Correct){ victory = false; }})
@@ -82,37 +77,23 @@ export const WordleGame = () => {
     }
 
     const renderHistory = (history: HistoryEntry[]) => {
-        let out: string[];
-        out = []
-        history.forEach(entry => {
-            out.push("Guess: "+entry.guess+". Accuracy: "+renderAccuracy(entry.accuracy));
-        });
         return (
             <ol>
-                {out.map((entry) => (
-                    <li>{entry}</li>
+                {history.map((entry) => (
+                    <li>Guess: {entry.guess}. Accuracy: {renderAccuracy(entry.accuracy)}</li>
                 ))}
             </ol>
         );
     }
 
     const renderAccuracy = (accuracy: LetterGuess[]) => {
-        let out = "";
-        accuracy.forEach(char => {
-            out = out.concat('The letter '+char.letter+' is ');
-            switch(char.state) {
-                case LetterGuessState.Incorrect: //If not, return whitespace.
-                    out = out.concat('not present. ');
-                    break;
-                case LetterGuessState.Correct: //If it's in the same place it was in the guess, return O.
-                    out = out.concat('present, and in the correct spot. ')
-                    break;
-                default://Otherwise, it has to be present but misplaced. Return X.
-                    out = out.concat('present, but in the wrong spot. ')
-                    break;
-            }
-        })
-        return out;
+        return accuracy.map(char => {
+            return "The letter "+char.letter+" is "+(char.state == LetterGuessState.Incorrect
+                ? 'not present. '
+                : char.state == LetterGuessState.Correct
+                    ? 'present, and in the correct spot. '
+                    : 'present, but in the wrong spot. ')
+        }).join('')
     }
 
     const renderVictory = (hasWon: boolean) => {
